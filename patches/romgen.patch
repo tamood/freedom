@@ -1,0 +1,16 @@
+diff -Naur rocket-chip/src/main/scala/util/ROMGenerator.scala ../../freedom/rocket-chip/src/main/scala/util/ROMGenerator.scala
+--- rocket-chip/src/main/scala/util/ROMGenerator.scala	2020-02-01 22:53:27.912888207 +0500
++++ ../../freedom/rocket-chip/src/main/scala/util/ROMGenerator.scala	2020-01-21 05:30:48.592187736 +0500
+@@ -4,10 +4,11 @@
+ 
+ import Chisel._
+ import scala.collection.mutable.{HashMap}
++import chisel3.experimental.IntParam
+ 
+ case class ROMConfig(name: String, depth: Int, width: Int)
+ 
+-class BlackBoxedROM(c: ROMConfig) extends BlackBox {
++class BlackBoxedROM(c: ROMConfig) extends BlackBox(Map("DEPTH" -> IntParam(c.depth), "WIDTH" -> IntParam(c.width))) {
+   val io = new Bundle {
+     val clock = Clock(INPUT)
+     val address = UInt(INPUT, log2Ceil(c.depth))
