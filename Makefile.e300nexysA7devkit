@@ -5,8 +5,9 @@ FPGA_DIR := $(base_dir)/fpga-shells/xilinx
 MODEL := FPGAChip
 PROJECT := sifive.freedom.everywhere.nexysA7
 
-BSP ?= freedom-singlecore32
-FIRMWARE ?= example-gpio
+
+BSP ?= freedom-s32-arty
+FIRMWARE ?= hello
 
 export CONFIG_PROJECT := sifive.freedom.everywhere.nexysA7
 export CONFIG := BoardConfig

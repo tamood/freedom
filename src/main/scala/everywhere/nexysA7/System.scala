@@ -10,43 +10,52 @@ import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.system._
 
+import sifive.blocks.devices.mockaon._
 import sifive.blocks.devices.gpio._
+import sifive.blocks.devices.pwm._
 import sifive.blocks.devices.spi._
 import sifive.blocks.devices.uart._
+import sifive.blocks.devices.i2c._
+import sifive.blocks.devices.timer._
+
+//-------------------------------------------------------------------------
+// Outer Wrap
+//-------------------------------------------------------------------------
 
 class Subsystem(implicit p: Parameters) extends RocketSubsystem
-    with HasPeripheryMaskROMSlave
     with HasPeripheryUART
     with HasPeripherySPI
-    with HasPeripheryGPIO {
-  override lazy val module = new SubsystemModule(this)
-  val chosen = new Device {
-    def describe(resources: ResourceBindings): Description = {
-      val entry = resources("entry").map(_.value)
-      val text = resources("text").map(_.value)
-      val data = resources("data").map(_.value)
+    with HasPeripherySPIFlash
+    with HasPeripheryGPIO
+    with HasPeripheryPWM
+    with HasPeripheryI2C
+    with HasPeripheryTimer {
+  override lazy val module = new SubsystemModuleImp(this)
+  val chosenEntryInDTS = new DeviceSnippet {
+    override def describe(): Description = {
       Description("chosen", Map(
-        "metal,entry" -> entry,
-        "metal,rom"   -> text,
-        "metal,ram"   -> data))
+        "stdout-path" -> Seq(ResourceString("/soc/serial@" + p(PeripheryUARTKey)(0).address.toString(16) + ":115200")),
+        "metal,entry" -> Seq(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label), ResourceInt(0), ResourceInt(0)),
+        "metal,rom"   -> Seq(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label), ResourceInt(0), ResourceInt(0)),
+        "metal,ram"   -> Seq(ResourceReference(tiles(0).dtim_adapter.get.device.label), ResourceInt(0), ResourceInt(0))))
     }
   }
-  ResourceBinding {
-    Resource(chosen, "text").bind(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label))
-    Resource(chosen, "data").bind(ResourceReference(tiles(0).dtim_adapter.get.device.label))
-    Resource(chosen, "entry").bind(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label))
-    Resource(chosen, "entry").bind(ResourceInt(0))
-  }
+  def resetVector: BigInt = p(PeripheryMaskROMKey)(0).address
 }
 
-class SubsystemModule[+L <: Subsystem](_outer: L)
-  extends RocketSubsystemModuleImp(_outer)
-    with HasRTCModuleImp
+//-------------------------------------------------------------------------
+// Inner Module Implementation
+//-------------------------------------------------------------------------
+
+class SubsystemModuleImp[+L <: Subsystem](outer: L)
+  extends RocketSubsystemModuleImp(outer)
     with HasPeripheryUARTModuleImp
     with HasPeripherySPIModuleImp
+    with HasPeripherySPIFlashModuleImp
     with HasPeripheryGPIOModuleImp
+    with HasPeripheryPWMModuleImp
+    with HasPeripheryI2CModuleImp
     {
   // Reset vector is set to the location of the mask rom
-  val maskROMParams = p(PeripheryMaskROMKey)
-  global_reset_vector := maskROMParams(0).address.U
+  global_reset_vector := outer.resetVector.U
 }
