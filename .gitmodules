@@ -8,9 +8,9 @@
 [submodule "block-nvdla-sifive"]
 	path = block-nvdla-sifive
 	url = https://github.com/tamood/block-nvdla-sifive.git
-[submodule "rocket-chip"]
-	path = rocket-chip
-	url = https://github.com/tamood/rocket-chip.git
 [submodule "fpga-shells"]
 	path = fpga-shells
 	url = https://github.com/tamood/fpga-shells.git
+[submodule "rocket-chip"]
+	path = rocket-chip
+	url = https://github.com/tamood/rocket-chip.git
