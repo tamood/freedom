@@ -14,3 +14,6 @@
 [submodule "rocket-chip"]
 	path = rocket-chip
 	url = https://github.com/tamood/rocket-chip.git
+[submodule "patchMMI"]
+	path = patchMMI
+	url = https://github.com/tamood/patchMMI.git
