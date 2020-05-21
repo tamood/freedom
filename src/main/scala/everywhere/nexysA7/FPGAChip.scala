@@ -60,22 +60,14 @@ class FPGAChip(implicit val p: Parameters) extends NexysA7Shell {
 
   dut_clock := busclk
   dut_reset := !clock_gen_locked 
-
-  //-------------------------------------------------------------------
-  // VGA Stub
-  //-------------------------------------------------------------------
-  
-  val inst_vga = Module(new VGAStub)
-  VGA.HSYNC := inst_vga.io.hsync
-  VGA.VSYNC := inst_vga.io.vsync
-  VGA.RGB := inst_vga.io.rgb
-  inst_vga.io.clk := dut_clock
-  inst_vga.io.rst := dut_reset
  
-  withClockAndReset(dut_clock, dut_reset | dbg_reset) {
-	  
-    val coreplex = Module(LazyModule(new Subsystem).module)
-
+  //-----------------------------------------------------------------------
+  // Define Coreplex
+  //-----------------------------------------------------------------------
+  val coreplex = withClockAndReset(dut_clock, dut_reset | dbg_reset) 
+  {
+    Module(LazyModule(new Subsystem).module)
+  }
     //---------------------------------------------------------------------
     // Peripharal connections
     //---------------------------------------------------------------------
@@ -202,8 +194,7 @@ class FPGAChip(implicit val p: Parameters) extends NexysA7Shell {
 			iobuf_tdo.io.T := ~(sj.jtag.TDO.driven)
 			iobuf_tdo.io.I := sj.jtag.TDO.data			
 		}	
-	}
- }             						
+	}             						
   
   ElaborationArtefacts.add(
     "clockdomains.synth.tcl",

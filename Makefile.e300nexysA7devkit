@@ -22,9 +22,6 @@ VSRCS := \
 	$(sifiveblocks_dir)/vsrc/SRLatch.v \
 	$(FPGA_DIR)/common/vsrc/PowerOnResetFPGAOnly.v \
 	$(FPGA_DIR)/common/vsrc/BootROM.v \
-	$(FPGA_DIR)/$(BOARD)/vsrc/nexysA7reset.v \
-	$(FPGA_DIR)/$(BOARD)/vsrc/sdio.v \
-	$(FPGA_DIR)/$(BOARD)/vsrc/vga_test.v \
 	$(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).v
 
 include common.mk
