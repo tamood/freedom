@@ -1,1 +1,16 @@
 
+[submodule "freedom-e-sdk"]
+	path = freedom-e-sdk
+	url = https://github.com/tamood/freedom-e-sdk.git
+[submodule "sifive-blocks"]
+	path = sifive-blocks
+	url = https://github.com/tamood/sifive-blocks.git
+[submodule "block-nvdla-sifive"]
+	path = block-nvdla-sifive
+	url = https://github.com/tamood/block-nvdla-sifive.git
+[submodule "rocket-chip"]
+	path = rocket-chip
+	url = https://github.com/tamood/rocket-chip.git
+[submodule "fpga-shells"]
+	path = fpga-shells
+	url = https://github.com/tamood/fpga-shells.git
