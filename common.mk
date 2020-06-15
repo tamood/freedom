@@ -28,7 +28,7 @@ BOOTROM_DIR ?= ""
 
 base_dir := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 export rocketchip_dir := $(base_dir)/rocket-chip
-SBT ?= java -jar $(rocketchip_dir)/sbt-launch.jar
+SBT ?= java -jar $(rocketchip_dir)/sbt-launch.jar ++2.12.10
 
 # Build firrtl.jar and put it where chisel3 can find it.
 FIRRTL_JAR ?= $(rocketchip_dir)/firrtl/utils/bin/firrtl.jar
@@ -41,13 +41,13 @@ $(FIRRTL_JAR): $(shell find $(rocketchip_dir)/firrtl/src/main/scala -iname "*.sc
 	cp -p $(FIRRTL_JAR) rocket-chip/lib
 	mkdir -p $(rocketchip_dir)/chisel3/lib
 	cp -p $(FIRRTL_JAR) $(rocketchip_dir)/chisel3/lib
+	mkdir -p $(base_dir)/project
+	cp $(rocketchip_dir)/project/build.properties $(base_dir)/project/build.properties
 
 # Build .fir
 firrtl := $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).fir
 $(firrtl): $(shell find $(base_dir)/src/main/scala -name '*.scala') $(FIRRTL_JAR)
 	mkdir -p $(dir $@)
-	mkdir -p $(base_dir)/project
-	cp $(rocketchip_dir)/project/build.properties $(base_dir)/project/build.properties
 	$(SBT) "runMain freechips.rocketchip.system.Generator -td $(BUILD_DIR) -T $(PROJECT).$(MODEL) -C $(CONFIG_PROJECT).$(CONFIG)"
 
 .PHONY: firrtl

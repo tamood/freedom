@@ -12,7 +12,7 @@ dtb := $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).dtb
 clk := $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).tl_clock.h
 
 $(clk): $(dts)
-	awk '/tlclk {/ && !f{f=1; next}; f && match($$0, /^.*clock-frequency.*<(.*)>.*/, arr) { print "#define TL_CLK " arr[1] "UL"}' $< > $@.tmp
+	awk '/subsystem_pbus_clock {/ && !f{f=1; next}; f && match($$0, /^.*clock-frequency.*<(.*)>.*/, arr) { print "#define TL_CLK " arr[1] "UL"}' $< > $@.tmp
 	mv $@.tmp $@
 
 $(dtb): $(dts)

@@ -17,3 +17,6 @@
 [submodule "patchMMI"]
 	path = patchMMI
 	url = https://github.com/tamood/patchMMI.git
+[submodule "zephyr"]
+	path = zephyr
+	url = https://github.com/tamood/zephyr.git

@@ -4,15 +4,11 @@ BUILD_DIR := $(base_dir)/builds/e300nexysA7devkit
 FPGA_DIR := $(base_dir)/fpga-shells/xilinx
 MODEL := FPGAChip
 PROJECT := sifive.freedom.everywhere.nexysA7
-
-
-BSP ?= freedom-s32-arty
-FIRMWARE ?= hello
-
 export CONFIG_PROJECT := sifive.freedom.everywhere.nexysA7
 export CONFIG := BoardConfig
 export BOARD := nexysA7
-export BOOTROM_DIR := $(base_dir)/bootrom/sdboot
+export BOOTROM := xip
+export BOOTROM_DIR := $(base_dir)/bootrom/$(BOOTROM)
 
 rocketchip_dir := $(base_dir)/rocket-chip
 sifiveblocks_dir := $(base_dir)/sifive-blocks
@@ -21,7 +17,7 @@ VSRCS := \
 	$(rocketchip_dir)/src/main/resources/vsrc/plusarg_reader.v \
 	$(sifiveblocks_dir)/vsrc/SRLatch.v \
 	$(FPGA_DIR)/common/vsrc/PowerOnResetFPGAOnly.v \
-	$(FPGA_DIR)/common/vsrc/BootROM.v \
+	$(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).rom.v \
 	$(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).v
 
 include common.mk

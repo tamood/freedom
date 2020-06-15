@@ -29,16 +29,11 @@ class Subsystem(implicit p: Parameters) extends RocketSubsystem
     with HasPeripheryGPIO
     with HasPeripheryPWM
     with HasPeripheryI2C
-    with HasPeripheryTimer {
+    with HasPeripheryTimer
+    with HasPeripheryMockAON {
   override lazy val module = new SubsystemModuleImp(this)
-  val chosenEntryInDTS = new DeviceSnippet {
-    override def describe(): Description = {
-      Description("chosen", Map(
-        "stdout-path" -> Seq(ResourceString("/soc/serial@" + p(PeripheryUARTKey)(0).address.toString(16) + ":115200")),
-        "metal,entry" -> Seq(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label), ResourceInt(0), ResourceInt(0)),
-        "metal,rom"   -> Seq(ResourceReference(maskROMs(0).node.portParams(0).managers(0).resources(0).owner.label), ResourceInt(0), ResourceInt(0)),
-        "metal,ram"   -> Seq(ResourceReference(tiles(0).dtim_adapter.get.device.label), ResourceInt(0), ResourceInt(0))))
-    }
+  val memDevice = new FlashDevice(tlqspi(0).device){
+	  ResourceBinding { Resource(this, "exists").bind(ResourceString("yes")) }
   }
   def resetVector: BigInt = p(PeripheryMaskROMKey)(0).address
 }
@@ -55,6 +50,8 @@ class SubsystemModuleImp[+L <: Subsystem](outer: L)
     with HasPeripheryGPIOModuleImp
     with HasPeripheryPWMModuleImp
     with HasPeripheryI2CModuleImp
+    with HasPeripheryMockAONModuleImp
+    with HasRTCModuleImp
     {
   // Reset vector is set to the location of the mask rom
   global_reset_vector := outer.resetVector.U

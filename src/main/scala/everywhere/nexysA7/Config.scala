@@ -29,6 +29,8 @@ class AtMHz(MHz: Double) extends Config((site, here, up) => {
 
 class CoreConfig extends Config(
   new WithNExtTopInterrupts(0)   ++
+  new WithNBreakpoints(2)        ++
+  new WithTimebase(32768)        ++
   new WithJtagDTM                ++
   new TinyConfig
 )
@@ -50,8 +52,9 @@ class PeripheralsConfig extends Config((site, here, up) => {
   case PeripherySPIFlashKey => List(
     SPIFlashParams(
       fAddress = 0x20000000,
+      fSize = 0x1000000,
       rAddress = 0x10042000,
-      defaultSampleDel = 3))  
+      defaultSampleDel = 3)) 
   case PeripheryI2CKey => List(
     I2CParams(address = BigInt(0x10030000)),
     I2CParams(address = BigInt(0x10031000)))  
@@ -60,8 +63,10 @@ class PeripheralsConfig extends Config((site, here, up) => {
     GPIOParams(address = BigInt(0x10011000), width = 21),
     GPIOParams(address = BigInt(0x10012000), width = 32, includeIOF = true),
     GPIOParams(address = BigInt(0x10013000), width = 16))
+  case PeripheryMockAONKey =>
+    MockAONParams(address = 0x10000000)
   case PeripheryMaskROMKey => List(
-    MaskROMParams(address = 0x10000, name = "BootROM", depth = 16*1024))
+    MaskROMParams(address = 0x10000, name = "BootROM", depth = 2*1024))
 })
 
 
