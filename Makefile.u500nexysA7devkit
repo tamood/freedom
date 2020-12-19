@@ -1,10 +1,10 @@
 # See LICENSE for license details.
 base_dir := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
-BUILD_DIR := $(base_dir)/builds/e300nexysA7devkit
+BUILD_DIR := $(base_dir)/builds/u500nexysA7devkit
 FPGA_DIR := $(base_dir)/fpga-shells/xilinx
 MODEL := FPGAChip
-PROJECT := sifive.freedom.everywhere.nexysA7
-export CONFIG_PROJECT := sifive.freedom.everywhere.nexysA7
+PROJECT := sifive.freedom.unleashed.nexysA7
+export CONFIG_PROJECT := sifive.freedom.unleashed.nexysA7
 export CONFIG := BoardConfig
 export BOARD := nexysA7
 export BOOTROM := xip
@@ -17,6 +17,7 @@ VSRCS := \
 	$(rocketchip_dir)/src/main/resources/vsrc/plusarg_reader.v \
 	$(sifiveblocks_dir)/vsrc/SRLatch.v \
 	$(FPGA_DIR)/common/vsrc/PowerOnResetFPGAOnly.v \
+	$(FPGA_DIR)/nexysA7/vsrc/nexysA7reset.v \
 	$(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).rom.v \
 	$(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).v
 

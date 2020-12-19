@@ -1,50 +1,69 @@
-bitstream := $(BUILD_DIR)/obj/$(MODEL)
-$(bitstream): $(f)
-	cd $(BUILD_DIR); vivado \
-		-nojournal -mode batch \
-		-source $(fpga_common_script_dir)/vivado.tcl \
-		-tclargs \
-		-top-module "$(MODEL)" \
-		-F "$(f)" \
-		-ip-vivado-tcls "$(shell find '$(BUILD_DIR)' -name '*.vivado.tcl')" \
-		-board "$(BOARD)"
+.PHONY: xpmrom
+xpmrom: 
+	cp $(BUILD_DIR)/$(BOOTROM).hex $(BUILD_DIR)/$(BOOTROM).mem
+	python3 $(base_dir)/patchMMI/vlsi_rom_gen $(ROMCONF) $(BUILD_DIR)/$(BOOTROM).mem > $(romgen)
 
-.PHONY: bitstream
-bitstream: $(bitstream)
+BSP ?= freedom-s32-arty
+FIRMWARE ?= sifive-welcome
 
-export RISCV_PATH=/home/tams/riscv
+export RISCV_PATH=$(RISCV)
 ESDKDIR ?= $(base_dir)/freedom-e-sdk
 BSPDIR = $(ESDKDIR)/bsp/$(BSP)
 DTSFILE=$(BSPDIR)/core.dts
+
+ZEPHYR_BASE ?= $(HOME)/zephyrproject/zephyr
+ZEPHYR_ELF ?= $(ZEPHYR_BASE)/build/zephyr/zephyr.elf
+OPENOCD ?= openocd
 
 .PHONY: buildbsp
 buildbsp:
 	mkdir -p $(ESDKDIR)/bsp/$(BSP)
 	rm -rf $(ESDKDIR)/bsp/$(BSP)/*
 	cp $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).dts $(DTSFILE)
+#	. $(ESDKDIR)/venv/bin/activate && python3 scripts/fix_boot_in_dts.py $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).dts SPIFlash > $(DTSFILE)
 	$(ESDKDIR)/scripts/esdk-settings-generator/generate_settings.py -d $(DTSFILE) -t arty -o $(BSPDIR)/settings.mk
-	$(ESDKDIR)/scripts/openocdcfg-generator/generate_openocdcfg.py -d $(DTSFILE) -b arty -p jtag -t -o $(BSPDIR)/openocd.cfg	
+	make -C $(ESDKDIR) TARGET=$(BSP) metal-bsp
+	$(ESDKDIR)/scripts/openocdcfg-generator/generate_openocdcfg.py -d $(BSPDIR)/design.dts -b arty -p jtag -t -o $(BSPDIR)/openocd.cfg
 		
-.PHONY: buildrom
-buildrom:
+.PHONY: buildmetal
+buildmetal:
 	make -C $(ESDKDIR) PROGRAM=$(FIRMWARE) TARGET=$(BSP) CONFIGURATION=debug software
 	cp $(ESDKDIR)/software/$(FIRMWARE)/debug/$(FIRMWARE).elf $(BUILD_DIR)/metal.elf
 
-
-.PHONY: updaterom
-updaterom: 
+.PHONY: patchbootrom
+patchbootrom: 
 	python $(base_dir)/patchMMI/patchMMI.py --i $(BUILD_DIR)/obj/$(MODEL).mmi --o $(BUILD_DIR)/obj/$(MODEL)MMI.mmi --d $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).json
-	updatemem -meminfo $(BUILD_DIR)/obj/$(MODEL)MMI.mmi -data $(BUILD_DIR)/metal.elf -proc rocketchip -bit $(BUILD_DIR)/obj/$(MODEL).bit -out $(BUILD_DIR)/obj/$(MODEL)WP.bit -force
+	updatemem -meminfo $(BUILD_DIR)/obj/$(MODEL)MMI.mmi -data $(BUILD_DIR)/$(BOOTROM).elf -proc rocketchip -bit $(BUILD_DIR)/obj/$(MODEL).bit -out $(BUILD_DIR)/obj/$(MODEL).bit -force
 
+.PHONY: configbit
+configbit: 
+	vivado -mode batch -source $(fpga_common_script_dir)/upload.tcl -tclargs $(BUILD_DIR)/obj/$(MODEL).bit
 	
-.PHONY: uploadrom
-uploadrom: 
-	vivado -mode batch -source $(fpga_common_script_dir)/upload.tcl -tclargs $(BUILD_DIR)/obj/$(MODEL)WP.bit
+.PHONY: configbit_ocd
+configbit_ocd:
+	$(OPENOCD) -c "adapter_khz 5000" -f "interface/ftdi/arty-onboard-ftdi.cfg" -f "cpld/xilinx-xc7.cfg" -c "init; pld load 0 $(BUILD_DIR)/obj/$(MODEL).bit; shutdown"	
+
+.PHONY: flashbit
+flashbit: 
+	cd $(BUILD_DIR); vivado -nojournal -mode batch -source $(fpga_common_script_dir)/memconfig.tcl -tclargs $(BUILD_DIR)/obj/$(MODEL).mcs
 	
-.PHONY: debugrom
-debugrom:
+.PHONY: flashmetal
+flashmetal:
+	make -C $(ESDKDIR) PROGRAM=$(FIRMWARE) TARGET=$(BSP) upload		
+	
+.PHONY: debugmetal
+debugmetal:
 	make -C $(ESDKDIR) PROGRAM=$(FIRMWARE) TARGET=$(BSP) debug	
-	
+		
+.PHONY: flashzephyr
+flashzephyr:
+	$(ESDKDIR)/scripts/upload --elf $(ZEPHYR_ELF) --openocd $(OPENOCD) --openocd-config $(BSPDIR)/openocd.cfg --gdb $(RISCV)/bin/riscv64-unknown-elf-gdb 	
+
+.PHONY: debugzephyr
+debugzephyr:
+	$(ESDKDIR)/scripts/debug  --elf $(ZEPHYR_ELF) --openocd $(OPENOCD) --openocd-config $(BSPDIR)/openocd.cfg --gdb $(RISCV)/bin/riscv64-unknown-elf-gdb 	
+
+
 .PHONY: chipclean
 chipclean:
 	rm -rf $(base_dir)/target

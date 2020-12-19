@@ -1,5 +1,5 @@
 // See LICENSE for license details.
-package sifive.freedom.everywhere.nexysA7
+package sifive.freedom.unleashed.nexysA7
 
 import Chisel._
 
@@ -17,23 +17,7 @@ import sifive.blocks.devices.spi._
 import sifive.blocks.devices.uart._
 import sifive.blocks.devices.i2c._
 import sifive.blocks.devices.timer._
-
-trait HasMetalLEDs { this: Subsystem =>
-  (List("LD0red", "LD0green", "LD0blue") zip List(21, 20, 19)) map { case (led_name, pin) =>
-    new SimpleDevice("led@" + pin, List("sifive,gpio-leds")) {
-      override def parent = Some(ResourceAnchors.soc)
-      override def describe(resources: ResourceBindings): Description = {
-        val Description(name, mapping) = super.describe(resources)
-        val extra = Map(
-          "label"  -> Seq(ResourceString(led_name)),
-          "gpios"  -> Seq(ResourceReference(gpios(0).device.label), ResourceInt(pin)),
-          "linux,default-trigger" -> Seq(ResourceString("none")))
-        Description(name, mapping ++ extra)
-      }	  
-      ResourceBinding { Resource(this, "exists").bind(ResourceString("yes")) }
-    }
-  }	
-}
+import sifive.fpgashells.devices.xilinx.nexysA7mig._
 
 trait HasMetalInSPIFlash { this: Subsystem =>
   new FlashDevice(qspis(0).device){
@@ -57,10 +41,9 @@ class Subsystem(implicit p: Parameters) extends RocketSubsystem
     with HasPeripheryPWM
     with HasPeripheryI2C
     with HasPeripheryTimer
-    with HasPeripheryMockAON
     with HasBootROM
     with HasMetalInSPIFlash
-    with HasMetalLEDs
+    with HasDDRMIG 
     {
 
   override lazy val module = new SubsystemModuleImp(this)
@@ -79,5 +62,5 @@ class SubsystemModuleImp[+L <: Subsystem](outer: L)
     with HasPeripheryGPIOModuleImp
     with HasPeripheryPWMModuleImp
     with HasPeripheryI2CModuleImp
-    with HasPeripheryMockAONModuleImp
     with HasRTCModuleImp
+    with HasDDRMIGModuleImp 

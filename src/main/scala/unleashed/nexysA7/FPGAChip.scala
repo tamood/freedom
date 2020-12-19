@@ -1,9 +1,9 @@
 // See LICENSE for license details.
-package sifive.freedom.everywhere.nexysA7
+package sifive.freedom.unleashed.nexysA7
 
 import Chisel._
 import chisel3.withClockAndReset
-import chisel3.experimental.{Analog, attach}
+import chisel3.experimental.{attach}
 
 import freechips.rocketchip.config._
 import freechips.rocketchip.diplomacy._
@@ -27,6 +27,19 @@ import sifive.fpgashells.ip.xilinx._
 import sifive.fpgashells.ip.xilinx.bscan2._
 import sifive.fpgashells.clocks._
 
+import sifive.fpgashells.devices.xilinx.nexysA7mig._
+
+class nexysA7reset() extends BlackBox
+{
+  val io = new Bundle{
+    val areset = Bool(INPUT)
+    val clock1 = Clock(INPUT)
+    val reset1 = Bool(OUTPUT)
+    val clock2 = Clock(INPUT)
+    val reset2 = Bool(OUTPUT)
+  }
+}
+
 //-------------------------------------------------------------------------
 // E300NexysA7FPGAChip
 //-------------------------------------------------------------------------
@@ -40,27 +53,43 @@ class FPGAChip(implicit val p: Parameters) extends NexysA7Shell {
   val dut_clock       = Wire(Clock())
   val dut_reset       = Wire(Bool())
   val dbg_reset       = Wire(Bool())
+  val mig_ui_reset   = Wire(Bool())
+  val mig_ui_clock   = Wire(Clock())
+  val mig_clock_gen_locked = Wire(Bool())
+  val migAXIResetn = Wire(Bool())
 
   //-----------------------------------------------------------------------
   // Clock Generator
   //-----------------------------------------------------------------------
+  
+  mig_ui_reset := false.B
+  mig_clock_gen_locked := true.B
 
   val clock_gen = Module(new Series7MMCM(PLLParameters("MASTER_CLOCK_GEN",
     PLLInClockParameters(100, 50),
     Seq(
-      PLLOutClockParameters(p(FPGAFrequencyKey))))))
+      PLLOutClockParameters(p(FPGAFrequencyKey)),
+      PLLOutClockParameters(200)
+      ))))
   
   clock_gen.io.clk_in1 := IBUFG(clock)
   clock_gen.io.reset   := ~resetn
   val clock_gen_locked = clock_gen.io.locked
-  val Seq(busclk, _*) = clock_gen.getClocks
+  val Seq(busclk, clk200Mhz, _*) = clock_gen.getClocks
 
   //-----------------------------------------------------------------------
   // System clock and reset
   //-----------------------------------------------------------------------
 
   dut_clock := busclk
-  dut_reset := !clock_gen_locked 
+  
+  val safe_reset = Module(new nexysA7reset)
+
+  safe_reset.io.areset := !clock_gen_locked || mig_ui_reset
+  safe_reset.io.clock1 := mig_ui_clock
+  migAXIResetn         := (~safe_reset.io.reset1)
+  safe_reset.io.clock2 := dut_clock
+  dut_reset            := (safe_reset.io.reset2)
  
   //-----------------------------------------------------------------------
   // Define Coreplex
@@ -69,6 +98,19 @@ class FPGAChip(implicit val p: Parameters) extends NexysA7Shell {
   {
     Module(LazyModule(new Subsystem).module)
   }
+  
+  //-----------------------------------------------------------------------
+  // Define DDR connections
+  //-----------------------------------------------------------------------
+  coreplex.ddrmigio.sys_clk_i  := clk200Mhz.asUInt
+  coreplex.ddrmigio.sys_rst    := clock_gen_locked
+  mig_ui_reset                 := coreplex.ddrmigio.ui_clk_sync_rst
+  mig_ui_clock                 := coreplex.ddrmigio.ui_clk
+  coreplex.ddrmigio.aresetn    := migAXIResetn
+  
+  val ddrpads = IO(new DDRMIGPads(p(PeripheryDDRMIGKey)))
+  ddrpads <> coreplex.ddrmigio
+
     //---------------------------------------------------------------------
     // Peripharal connections
     //---------------------------------------------------------------------
@@ -123,10 +165,17 @@ class FPGAChip(implicit val p: Parameters) extends NexysA7Shell {
 	IOBUF(TMP.SDA, i2c_pins(0).sda)	
 	
 	//connect Accelerometer
-    IOBUF(ACL.SCLK, spi_pins(0).sck)
-    IOBUF(ACL.CSN, spi_pins(0).cs(0))
-    IOBUF(ACL.MISO, spi_pins(0).dq(1))
-    IOBUF(ACL.MOSI, spi_pins(0).dq(0))
+    IOBUF(ACL.SCLK, spi_pins(1).sck)
+    IOBUF(ACL.CSN, spi_pins(1).cs(0))
+    IOBUF(ACL.MISO, spi_pins(1).dq(1))
+    IOBUF(ACL.MOSI, spi_pins(1).dq(0))
+    
+    //Microsd
+    IOBUF(SD.CLK, spi_pins(0).sck)
+    IOBUF(SD.CS, spi_pins(0).cs(0))
+    IOBUF(SD.MISO, spi_pins(0).dq(1))
+    IOBUF(SD.MOSI, spi_pins(0).dq(0))
+    SD.RST := false.B
     
     //connect aux ports
     val iof_00 = coreplex.iof(0).get.iof_0
