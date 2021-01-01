@@ -4,6 +4,10 @@ BUILD_DIR := $(base_dir)/builds/u500nexysA7devkit
 FPGA_DIR := $(base_dir)/fpga-shells/xilinx
 MODEL := FPGAChip
 PROJECT := sifive.freedom.unleashed.nexysA7
+
+BSP := freedom-s64-arty
+FIRMWARE := multicore-hello
+
 export CONFIG_PROJECT := sifive.freedom.unleashed.nexysA7
 export CONFIG := BoardConfig
 export BOARD := nexysA7

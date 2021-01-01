@@ -4,6 +4,10 @@ BUILD_DIR := $(base_dir)/builds/e300nexysA7devkit
 FPGA_DIR := $(base_dir)/fpga-shells/xilinx
 MODEL := FPGAChip
 PROJECT := sifive.freedom.everywhere.nexysA7
+
+BSP := freedom-s32-arty
+FIRMWARE := sifive-welcome
+
 export CONFIG_PROJECT := sifive.freedom.everywhere.nexysA7
 export CONFIG := BoardConfig
 export BOARD := nexysA7

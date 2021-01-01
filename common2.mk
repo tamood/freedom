@@ -3,27 +3,26 @@ xpmrom:
 	cp $(BUILD_DIR)/$(BOOTROM).hex $(BUILD_DIR)/$(BOOTROM).mem
 	python3 $(base_dir)/patchMMI/vlsi_rom_gen $(ROMCONF) $(BUILD_DIR)/$(BOOTROM).mem > $(romgen)
 
-BSP ?= freedom-s32-arty
-FIRMWARE ?= sifive-welcome
-
 export RISCV_PATH=$(RISCV)
+export FREEDOM_E_SDK_VENV_PATH=$(base_dir)/venv
 ESDKDIR ?= $(base_dir)/freedom-e-sdk
 BSPDIR = $(ESDKDIR)/bsp/$(BSP)
 DTSFILE=$(BSPDIR)/core.dts
 
-ZEPHYR_BASE ?= $(HOME)/zephyrproject/zephyr
+ZEPHYR_BASE ?= $(base_dir)/zephyr
 ZEPHYR_ELF ?= $(ZEPHYR_BASE)/build/zephyr/zephyr.elf
 OPENOCD ?= openocd
 
 .PHONY: buildbsp
 buildbsp:
+	python3 -m venv venv
 	mkdir -p $(ESDKDIR)/bsp/$(BSP)
 	rm -rf $(ESDKDIR)/bsp/$(BSP)/*
 	cp $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).dts $(DTSFILE)
-#	. $(ESDKDIR)/venv/bin/activate && python3 scripts/fix_boot_in_dts.py $(BUILD_DIR)/$(CONFIG_PROJECT).$(CONFIG).dts SPIFlash > $(DTSFILE)
-	$(ESDKDIR)/scripts/esdk-settings-generator/generate_settings.py -d $(DTSFILE) -t arty -o $(BSPDIR)/settings.mk
+	make -C $(ESDKDIR) -f scripts/virtualenv.mk virtualenv
+	. $(FREEDOM_E_SDK_VENV_PATH)/bin/activate && $(ESDKDIR)/scripts/esdk-settings-generator/generate_settings.py -d $(DTSFILE) -t arty -o $(BSPDIR)/settings.mk
 	make -C $(ESDKDIR) TARGET=$(BSP) metal-bsp
-	$(ESDKDIR)/scripts/openocdcfg-generator/generate_openocdcfg.py -d $(BSPDIR)/design.dts -b arty -p jtag -t -o $(BSPDIR)/openocd.cfg
+	. $(FREEDOM_E_SDK_VENV_PATH)/bin/activate && $(ESDKDIR)/scripts/openocdcfg-generator/generate_openocdcfg.py -d $(BSPDIR)/design.dts -b arty -p jtag -t -o $(BSPDIR)/openocd.cfg
 		
 .PHONY: buildmetal
 buildmetal:
